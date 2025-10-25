@@ -8,7 +8,7 @@ from importlib import reload
 import numpy
 from pandas import DataFrame
 
-import bandits.rl_ddqn_v2 as bandits
+import bandits.rl_ddqn_pytorch as bandits  # Use PyTorch version
 import bandits.bandit_helper_v2 as bandit_helper
 import constants as constants
 import database.sql_connection as sql_connection
@@ -16,7 +16,7 @@ import database.sql_helper as sql_helper
 import shared.configs_v2 as configs
 import shared.helper as helper
 from bandits.experiment_report import ExpReport
-from bandits.oracle_v2 import OracleV6 as Oracle
+from bandits.oracle_v2 import OracleV7 as Oracle
 from bandits.query_v5 import Query
 
 
@@ -155,7 +155,7 @@ class Simulator(BaseSimulator):
                                                                                   number_of_columns,
                                                                                   constants.CONTEXT_UNIQUENESS,
                                                                                   constants.CONTEXT_INCLUDES)
-            context_vectors_v2 = bandit_helper.get_derived_value_context_vectors_v2(self.connection, index_arms,
+            context_vectors_v2 = bandit_helper.get_derived_value_context_vectors_v3(self.connection, index_arms,
                                                                                     query_obj_list_past,
                                                                                     chosen_arms_last_round,
                                                                                     not constants.CONTEXT_INCLUDES)
@@ -216,7 +216,7 @@ class Simulator(BaseSimulator):
                                                                                                   chosen_arms, added_arms, deleted_arms,
                                                                                                   query_obj_list_current)
             else:
-                time_taken, creation_cost_dict, arm_rewards = sql_helper.create_query_drop_v2(self.connection,
+                time_taken, creation_cost_dict, arm_rewards = sql_helper.create_query_drop_v3(self.connection,
                                                                                               constants.SCHEMA_NAME,
                                                                                               chosen_arms, added_arms,
                                                                                               deleted_arms,
