@@ -3,7 +3,7 @@ import itertools
 import numpy
 
 import constants as constants
-import database.sql_helper_v2 as sql_helper
+import database.sql_helper as sql_helper
 from bandits.bandit_arm import BanditArm
 
 bandit_arm_store = {}

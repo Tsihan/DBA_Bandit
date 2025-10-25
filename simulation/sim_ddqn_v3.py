@@ -12,7 +12,7 @@ import bandits.rl_ddqn_v2 as bandits
 import bandits.bandit_helper_v2 as bandit_helper
 import constants as constants
 import database.sql_connection as sql_connection
-import database.sql_helper_v2 as sql_helper
+import database.sql_helper as sql_helper
 import shared.configs_v2 as configs
 import shared.helper as helper
 from bandits.experiment_report import ExpReport

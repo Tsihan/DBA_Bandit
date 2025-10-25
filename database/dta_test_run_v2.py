@@ -8,7 +8,7 @@ from importlib import reload
 
 import constants
 import shared.configs_v2 as configs
-from database import sql_connection, sql_helper_v2 as sql_helper
+from database import sql_connection, sql_helper as sql_helper
 from shared import helper
 
 
@@ -17,15 +17,16 @@ class DTARunner:
     def __init__(self, ta_runs, workload_type='optimal', uniform=False):
         # workload_types: 'full', 'current', 'optimal', 'last_run'
         db_config = configparser.ConfigParser()
-        db_config.read(constants.ROOT_DIR + constants.DB_CONFIG)
+        db_config.read(constants.DB_CONFIG)
         db_type = db_config['SYSTEM']['db_type']
-        self.server = db_config[db_type]['server']
-        self.database = db_config[db_type]['database']
+        db_section = db_config[db_type]
+        self.server = db_section.get('server', '')
+        self.database = db_section.get('database', '')
         self.connection = sql_connection.get_sql_connection()
-        self.workload_file_current = constants.ROOT_DIR + constants.WORKLOADS_FOLDER + '\\temp_workload_current.sql'
-        self.workload_file_optimal = constants.ROOT_DIR + constants.WORKLOADS_FOLDER + '\\temp_workload_optimal.sql'
-        self.workload_file_full = constants.ROOT_DIR + constants.WORKLOADS_FOLDER + '\\temp_workload_full.sql'
-        self.workload_file_last_run = constants.ROOT_DIR + constants.WORKLOADS_FOLDER + '\\temp_workload_last_run.sql'
+        self.workload_file_current = os.path.join(constants.WORKLOADS_FOLDER, 'temp_workload_current.sql')
+        self.workload_file_optimal = os.path.join(constants.WORKLOADS_FOLDER, 'temp_workload_optimal.sql')
+        self.workload_file_full = os.path.join(constants.WORKLOADS_FOLDER, 'temp_workload_full.sql')
+        self.workload_file_last_run = os.path.join(constants.WORKLOADS_FOLDER, 'temp_workload_last_run.sql')
         self.workload_type = workload_type
         self.ta_runs = ta_runs
         self.queries = helper.get_queries_v2()

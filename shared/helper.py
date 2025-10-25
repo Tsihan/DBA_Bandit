@@ -51,11 +51,12 @@ def get_experiment_folder_path(experiment_id):
     """
     Get the folder location of the experiment
     :param experiment_id: name of the experiment
-    :return: file path as string
+    :return: file path as string ending with the path separator
     """
-    experiment_folder_path = constants.ROOT_DIR + constants.EXPERIMENT_FOLDER + '\\' + experiment_id + '\\'
-    if not os.path.exists(experiment_folder_path):
-        os.makedirs(experiment_folder_path)
+    experiment_folder_path = os.path.join(constants.EXPERIMENT_FOLDER, experiment_id)
+    os.makedirs(experiment_folder_path, exist_ok=True)
+    if not experiment_folder_path.endswith(os.sep):
+        experiment_folder_path = experiment_folder_path + os.sep
     return experiment_folder_path
 
 
@@ -63,12 +64,13 @@ def get_workload_folder_path(experiment_id):
     """
     Get the folder location of the experiment
     :param experiment_id: name of the experiment
-    :return: file path as string
+    :return: file path as string ending with the path separator
     """
-    experiment_folder_path = constants.ROOT_DIR + constants.WORKLOADS_FOLDER + '\\' + experiment_id + '\\'
-    if not os.path.exists(experiment_folder_path):
-        os.makedirs(experiment_folder_path)
-    return experiment_folder_path
+    workload_folder_path = os.path.join(constants.WORKLOADS_FOLDER, experiment_id)
+    os.makedirs(workload_folder_path, exist_ok=True)
+    if not workload_folder_path.endswith(os.sep):
+        workload_folder_path = workload_folder_path + os.sep
+    return workload_folder_path
 
 
 def plot_histogram_avg(statistic_dict, title, experiment_id):
@@ -111,14 +113,17 @@ def get_queries_v2():
     """
     # Reading the configuration for given experiment ID
     exp_config = configparser.ConfigParser()
-    exp_config.read(constants.ROOT_DIR + constants.EXPERIMENT_CONFIG)
+    exp_config.read(constants.EXPERIMENT_CONFIG)
 
     # experiment id for the current run
     experiment_id = exp_config['general']['run_experiment']
     workload_file = str(exp_config[experiment_id]['workload_file'])
 
     queries = []
-    with open(constants.ROOT_DIR + workload_file) as f:
+    workload_path = workload_file
+    if not os.path.isabs(workload_path):
+        workload_path = os.path.join(constants.ROOT_DIR, workload_path)
+    with open(workload_path) as f:
         line = f.readline()
         while line:
             queries.append(json.loads(line))
@@ -240,9 +245,9 @@ def change_experiment(exp_id):
     :param exp_id: id of the new experiment
     """
     exp_config = configparser.ConfigParser()
-    exp_config.read(constants.ROOT_DIR + constants.EXPERIMENT_CONFIG)
+    exp_config.read(constants.EXPERIMENT_CONFIG)
     exp_config['general']['run_experiment'] = exp_id
-    with open(constants.ROOT_DIR + constants.EXPERIMENT_CONFIG, 'w') as configfile:
+    with open(constants.EXPERIMENT_CONFIG, 'w') as configfile:
         exp_config.write(configfile)
 
 

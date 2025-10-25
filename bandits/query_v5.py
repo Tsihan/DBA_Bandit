@@ -1,4 +1,4 @@
-import database.sql_helper_v2 as sql_helper
+import database.sql_helper as sql_helper
 
 
 class Query:

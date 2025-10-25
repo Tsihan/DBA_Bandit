@@ -1,18 +1,35 @@
+import configparser
 import logging
 import os
 
 # ===============================  Program Related  ===============================
-DB_CONFIG = '\config\db.conf'
-EXPERIMENT_FOLDER = '\experiments'
-WORKLOADS_FOLDER = '\\resources\\workloads'
-EXPERIMENT_CONFIG = '\config\exp.conf'
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_DIR = os.path.join(ROOT_DIR, 'config')
+DB_CONFIG = os.path.join(CONFIG_DIR, 'db.conf')
+EXPERIMENT_CONFIG = os.path.join(CONFIG_DIR, 'exp.conf')
+EXPERIMENT_FOLDER = os.path.join(ROOT_DIR, 'experiments')
+WORKLOADS_FOLDER = os.path.join(ROOT_DIR, 'resources', 'workloads')
 LOGGING_LEVEL = logging.INFO
 
 TABLE_SCAN_TIME_LENGTH = 1000
 
 # ===============================  Database / Workload  ===============================
 SCHEMA_NAME = 'dbo'
+DATASET_NAME = ''
+
+try:
+    db_config = configparser.ConfigParser()
+    if os.path.exists(DB_CONFIG):
+        db_config.read(DB_CONFIG)
+        db_type = db_config.get('SYSTEM', 'db_type', fallback='MSSQL')
+        schema_fallback = 'dbo' if db_type.strip().upper() == 'MSSQL' else 'public'
+        SCHEMA_NAME = db_config.get(db_type, 'schema', fallback=schema_fallback)
+        DATASET_NAME = db_config.get(db_type, 'dataset', fallback=db_config.get(db_type, 'database', fallback=''))
+        if DATASET_NAME:
+            DATASET_NAME = DATASET_NAME.upper()
+except Exception:
+    # Leave defaults if configuration cannot be loaded during import time
+    pass
 
 # ===============================  Arm Generation Heuristics  ===============================
 INDEX_INCLUDES = 1

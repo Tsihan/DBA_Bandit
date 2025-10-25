@@ -1,6 +1,9 @@
+import constants
+
+
 class BanditArm:
     def __init__(self, index_cols, table_name, memory, table_row_count, include_cols=()):
-        self.schema_name = 'dbo'
+        self.schema_name = constants.SCHEMA_NAME
         self.table_name = table_name
         self.index_cols = index_cols
         self.include_cols = include_cols

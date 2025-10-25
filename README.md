@@ -19,6 +19,16 @@ list of experiments you need to run and execute the file
     1. Results will be saved under in a sub-folder under `experiments` folder. Sub-folder name will be the name you provided 
     for the experiment.
     2. Results will include graphs, CSV of main results, pickle fill of all the data.
+
+### PostgreSQL quick start
+
+The repository now bundles a lightweight configuration that targets a local PostgreSQL instance loaded with the IMDB dataset (`imdbload`).
+
+1. Install the Python dependencies listed in `requirements.txt` and ensure `psycopg2` can reach your PostgreSQL client libraries.
+2. Update `config/db.conf` with the connection details for your database (`host`, `port`, credentials, and optionally the schema/dataset hints).
+3. Inspect `resources/workloads/imdb_postgres_static.json` and adjust the sample workload so that the queries match your IMDB schema and typical workload.
+4. Review `config/exp.conf` and keep `run_experiment = imdb_postgres_mab` (or tweak the section to your needs). Hypothetical-index rounds are not supported on PostgreSQL, so leave `hyp_rounds = 0`.
+5. Execute `python simulation/sim_run_experiment.py` to run the bandit against PostgreSQL. Results will appear under `experiments/imdb_postgres_mab/`.
     
 ### Experiment Config Explained
 
@@ -32,7 +42,7 @@ list of experiments you need to run and execute the file
 7. queries_end = [21, 42, 63, 84, 105, 126, 147, 168, 189, 210, 231, 252, 273, 294, 315, 336, 357, 378, 399, 420, 441, 462, 483, 504, 525]
 8. ta_runs = [1]
 9. ta_workload = optimal
-10. workload_file = \resources\workloads\tpc_h_static_100.json
+10. workload_file = resources/workloads/tpc_h_static_100.json
 11. config_shifts = [0]
 12. config_start = [0]
 13. config_end = [20]
