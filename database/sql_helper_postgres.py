@@ -6,6 +6,7 @@ import time
 from collections import defaultdict
 from typing import Dict, List, Tuple
 
+import psycopg2
 from psycopg2 import sql
 
 import constants
@@ -107,11 +108,23 @@ def create_index_v1(connection, schema_name, tbl_name, col_names, idx_name, incl
     )
     cursor = connection.cursor()
     start = time.perf_counter()
-    cursor.execute(statement)
-    connection.commit()
-    elapsed = time.perf_counter() - start
-    logging.info("Added index %s", idx_name)
-    return elapsed
+    try:
+        cursor.execute(statement)
+        connection.commit()
+        elapsed = time.perf_counter() - start
+        logging.info("Added index %s on %s(%s)", idx_name, tbl_name, ', '.join(col_names))
+        return elapsed
+    except psycopg2.errors.ProgramLimitExceeded as e:
+        connection.rollback()
+        logging.warning("Failed to create index %s on %s(%s): Index row size exceeds limit. %s", 
+                       idx_name, tbl_name, ', '.join(col_names), str(e))
+        # Return 0 elapsed time for failed index creation
+        return 0.0
+    except Exception as e:
+        connection.rollback()
+        logging.error("Failed to create index %s on %s(%s): %s", 
+                     idx_name, tbl_name, ', '.join(col_names), str(e))
+        return 0.0
 
 
 def create_index_v2(connection, query):
@@ -135,10 +148,13 @@ def create_statistics(connection, query):
 def bulk_create_indexes(connection, schema_name, bandit_arm_list):
     cost = {}
     for index_name, bandit_arm in bandit_arm_list.items():
-        cost[index_name] = create_index_v1(connection, schema_name, bandit_arm.table_name,
-                                           bandit_arm.index_cols, bandit_arm.index_name,
-                                           bandit_arm.include_cols)
-        set_arm_size(connection, bandit_arm)
+        creation_time = create_index_v1(connection, schema_name, bandit_arm.table_name,
+                                        bandit_arm.index_cols, bandit_arm.index_name,
+                                        bandit_arm.include_cols)
+        cost[index_name] = creation_time
+        # Only set size if index was created successfully
+        if creation_time > 0:
+            set_arm_size(connection, bandit_arm)
     return cost
 
 
@@ -223,11 +239,18 @@ def create_query_drop_v3(connection, schema_name, bandit_arm_list, arm_list_to_a
             table_counts = {}
             for index_use in non_clustered_index_usage:
                 index_name = index_use[0]
+                # Only process indexes that are managed by the bandit algorithm
+                if index_name not in bandit_arm_list:
+                    logging.debug("Skipping index not in bandit_arm_list: %s", index_name)
+                    continue
                 table_name = bandit_arm_list[index_name].table_name
                 table_counts[table_name] = table_counts.get(table_name, 0) + 1
 
             for index_use in non_clustered_index_usage:
                 index_name = index_use[0]
+                # Only process indexes that are managed by the bandit algorithm
+                if index_name not in bandit_arm_list:
+                    continue
                 table_name = bandit_arm_list[index_name].table_name
                 if len(query.table_scan_times[table_name]) < constants.TABLE_SCAN_TIME_LENGTH:
                     query.index_scan_times[table_name].append(index_use[constants.COST_TYPE_CURRENT_EXECUTION])
@@ -239,8 +262,11 @@ def create_query_drop_v3(connection, schema_name, bandit_arm_list, arm_list_to_a
                     temp_reward = max(table_scan_times[table_name]) - index_use[constants.COST_TYPE_CURRENT_EXECUTION]
                     temp_reward = temp_reward / table_counts[table_name]
                 else:
-                    logging.error("Queries without index scan information %s", query.id)
-                    raise Exception('Missing index scan information')
+                    # No table scan history available - use index scan time as baseline
+                    # This happens when index is used from the very first query
+                    logging.warning("No table scan history for query %s, table %s. Using index time as baseline.", 
+                                   query.id, table_name)
+                    temp_reward = 0  # Neutral reward since we have no comparison baseline
                 if table_name in current_clustered_index_scans:
                     temp_reward -= current_clustered_index_scans[table_name] / table_counts[table_name]
                 if index_name not in arm_rewards:
@@ -531,13 +557,48 @@ def get_selectivity_v3(connection, query, predicates):
 
 def remove_all_non_clustered(connection, schema_name):
     cursor = connection.cursor()
-    cursor.execute('''SELECT indexname
-                      FROM pg_indexes
-                      WHERE schemaname = %s
-                        AND indexname NOT LIKE '%_pkey';''', (schema_name,))
-    for row in cursor.fetchall():
-        cursor.execute(sql.SQL('DROP INDEX IF EXISTS {}').format(sql.Identifier(schema_name, row[0])))
+    try:
+                cursor.execute('''SELECT indexname
+                                                    FROM pg_indexes
+                                                    WHERE schemaname = %s
+                                                        AND indexname NOT LIKE '%%_pkey'
+                            AND indexname NOT IN (
+                                SELECT conname 
+                                FROM pg_constraint 
+                                WHERE contype IN ('p', 'u', 'f')
+                            );''', (schema_name,))
+    except Exception as exc:
+        logging.exception("Failed to fetch non-clustered indexes for schema %s: %s", schema_name, exc)
+        cursor.close()
+        raise
+    indexes_to_drop = cursor.fetchall()
+    cursor.close()
+    
+    # Drop indexes in a new cursor
+    cursor = connection.cursor()
+    for row in indexes_to_drop:
+        # Each row should contain the index name either as a tuple or dict-like object
+        if not row:
+            logging.debug("Skipping empty row returned from pg_indexes query")
+            continue
+        if isinstance(row, dict):
+            index_name = row.get('indexname')
+        else:
+            index_name = row[0] if len(row) > 0 else None
+        if not index_name:
+            logging.debug("Skipping row without index name: %s", row)
+            continue
+        try:
+            cursor.execute(sql.SQL('DROP INDEX IF EXISTS {}.{} CASCADE').format(
+                sql.Identifier(schema_name), 
+                sql.Identifier(index_name)
+            ))
+            logging.info("Dropped index: %s", index_name)
+        except Exception as e:
+            logging.warning("Failed to drop index %s: %s", index_name, str(e))
+            connection.rollback()
     connection.commit()
+    cursor.close()
 
 
 def drop_all_dta_statistics(connection):

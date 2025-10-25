@@ -2,6 +2,7 @@ import pickle
 from importlib import reload
 import logging
 
+import pandas as pd
 from pandas import DataFrame
 
 import constants
@@ -10,8 +11,17 @@ from database.config_test_run import ConfigRunner
 from database.dta_test_run_v2 import DTARunner
 from shared import configs_v2 as configs, helper
 
+
+def add_total_time_row(df, total_workload_time):
+    """Helper function to add total workload time row to DataFrame."""
+    new_row = DataFrame([[-1, constants.MEASURE_TOTAL_WORKLOAD_TIME, total_workload_time]], 
+                       columns=[constants.DF_COL_BATCH, constants.DF_COL_MEASURE_NAME, 
+                               constants.DF_COL_MEASURE_VALUE])
+    return pd.concat([df, new_row], ignore_index=True)
+
+
 # Define Experiment ID list that we need to run
-exp_id_list = ["imdb_postgres_mab"]
+exp_id_list = ["job_benchmark_mab"]
 
 # Comparing components
 OPTIMAL = constants.COMPONENT_OPTIMAL in configs.components
@@ -77,7 +87,7 @@ for i in range(len(exp_id_list)):
                     results, total_workload_time = simulator.run()
                     temp = DataFrame(results, columns=[constants.DF_COL_BATCH, constants.DF_COL_MEASURE_NAME,
                                                        constants.DF_COL_MEASURE_VALUE])
-                    temp.append([-1, constants.MEASURE_TOTAL_WORKLOAD_TIME, total_workload_time])
+                    temp = add_total_time_row(temp, total_workload_time)
                     temp[constants.DF_COL_REP] = r
                     exp_report_mab.add_data_list(temp)
                 exp_report_list.append(exp_report_mab)
@@ -90,7 +100,7 @@ for i in range(len(exp_id_list)):
                 results, total_workload_time = ConfigRunner.run("no_index.sql", uniform=UNIFORM)
                 temp = DataFrame(results, columns=[constants.DF_COL_BATCH, constants.DF_COL_MEASURE_NAME,
                                                    constants.DF_COL_MEASURE_VALUE])
-                temp.append([-1, constants.MEASURE_TOTAL_WORKLOAD_TIME, total_workload_time])
+                temp = add_total_time_row(temp, total_workload_time)
                 temp[constants.DF_COL_REP] = r
                 exp_report_no_index.add_data_list(temp)
             exp_report_list.append(exp_report_no_index)
@@ -102,7 +112,7 @@ for i in range(len(exp_id_list)):
                 results, total_workload_time = ConfigRunner.run("optimal_config.sql", uniform=UNIFORM)
                 temp = DataFrame(results, columns=[constants.DF_COL_BATCH, constants.DF_COL_MEASURE_NAME,
                                                    constants.DF_COL_MEASURE_VALUE])
-                temp.append([-1, constants.MEASURE_TOTAL_WORKLOAD_TIME, total_workload_time])
+                temp = add_total_time_row(temp, total_workload_time)
                 temp[constants.DF_COL_REP] = r
                 exp_report_optimal.add_data_list(temp)
             exp_report_list.append(exp_report_optimal)
@@ -115,7 +125,7 @@ for i in range(len(exp_id_list)):
                 results, total_workload_time = dta_runner.run()
                 temp = DataFrame(results, columns=[constants.DF_COL_BATCH, constants.DF_COL_MEASURE_NAME,
                                                    constants.DF_COL_MEASURE_VALUE])
-                temp.append([-1, constants.MEASURE_TOTAL_WORKLOAD_TIME, total_workload_time])
+                temp = add_total_time_row(temp, total_workload_time)
                 temp[constants.DF_COL_REP] = r
                 exp_report_ta.add_data_list(temp)
             exp_report_list.append(exp_report_ta)
@@ -129,7 +139,7 @@ for i in range(len(exp_id_list)):
                 results, total_workload_time = dta_runner.run()
                 temp = DataFrame(results, columns=[constants.DF_COL_BATCH, constants.DF_COL_MEASURE_NAME,
                                                    constants.DF_COL_MEASURE_VALUE])
-                temp.append([-1, constants.MEASURE_TOTAL_WORKLOAD_TIME, total_workload_time])
+                temp = add_total_time_row(temp, total_workload_time)
                 temp[constants.DF_COL_REP] = r
                 exp_report_ta.add_data_list(temp)
             exp_report_list.append(exp_report_ta)
@@ -143,7 +153,7 @@ for i in range(len(exp_id_list)):
                 results, total_workload_time = dta_runner.run()
                 temp = DataFrame(results, columns=[constants.DF_COL_BATCH, constants.DF_COL_MEASURE_NAME,
                                                    constants.DF_COL_MEASURE_VALUE])
-                temp.append([-1, constants.MEASURE_TOTAL_WORKLOAD_TIME, total_workload_time])
+                temp = add_total_time_row(temp, total_workload_time)
                 temp[constants.DF_COL_REP] = r
                 exp_report_ta.add_data_list(temp)
             exp_report_list.append(exp_report_ta)
@@ -157,7 +167,7 @@ for i in range(len(exp_id_list)):
                 results, total_workload_time = dta_runner.run()
                 temp = DataFrame(results, columns=[constants.DF_COL_BATCH, constants.DF_COL_MEASURE_NAME,
                                                    constants.DF_COL_MEASURE_VALUE])
-                temp.append([-1, constants.MEASURE_TOTAL_WORKLOAD_TIME, total_workload_time])
+                temp = add_total_time_row(temp, total_workload_time)
                 temp[constants.DF_COL_REP] = r
                 exp_report_ta.add_data_list(temp)
             exp_report_list.append(exp_report_ta)
@@ -172,7 +182,7 @@ for i in range(len(exp_id_list)):
                 results, total_workload_time = simulator.run()
                 temp = DataFrame(results, columns=[constants.DF_COL_BATCH, constants.DF_COL_MEASURE_NAME,
                                                    constants.DF_COL_MEASURE_VALUE])
-                temp.append([-1, constants.MEASURE_TOTAL_WORKLOAD_TIME, total_workload_time])
+                temp = add_total_time_row(temp, total_workload_time)
                 temp[constants.DF_COL_REP] = r
                 exp_report_mab.add_data_list(temp)
             exp_report_list.append(exp_report_mab)

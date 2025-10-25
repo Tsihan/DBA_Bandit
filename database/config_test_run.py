@@ -5,7 +5,8 @@ from importlib import reload
 
 import constants
 import shared.configs_v2 as configs
-from database import sql_connection, sql_helper as sql_helper
+from database import sql_connection
+from database import sql_helper
 from shared import helper
 
 

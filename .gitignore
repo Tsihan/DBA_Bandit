@@ -1,1 +1,4 @@
 /.idea/*
+*/_pycache__/
+*.pyc
+/experiments/*
